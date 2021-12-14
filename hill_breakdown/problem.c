@@ -22,7 +22,6 @@ void relative_orbit_output(struct reb_simulation* r, struct reb_particle s, stru
 void loop_sma();
 
 double tmax = 2.*M_PI*1.0e2;     // 100 years translated into code units
-bool stable;
 int n = 0; float inc; float a_over_rh; float mass_ratio = 0.0;
 
 // For plotting info about a specific orbit
@@ -33,7 +32,11 @@ float target_a = 0.4;
 float r_hill;
 
 int main(int argc, char* argv[]){
-    system("rm -v time*.txt");        // delete previous output file
+    char command[30];
+
+    sprintf(command, "rm -v time_%.2e.txt", mass_ratio);
+
+    system(command);        // delete previous output file
     system("rm -v diagnostics.txt");        // delete previous output file
     system("rm -v detailed_global.txt");
     system("rm -v detailed_relative.txt"); 
@@ -125,24 +128,28 @@ void heartbeat(struct reb_simulation* r){
     if (n == target_inc * 81 + round(100 * (target_a-0.3))){
         global_orbit_output(r, r->particles[1]);
         relative_orbit_output(r, r->particles[1], r->particles[0]);
-    }
+    }*/
 
-    // diagnostics about 1 in every 97 orbits
-    if(reb_output_check(r, 5*M_PI)){        // outputs to the screen
-        if (n % 97 == 0){
-            FILE* fp = fopen("diagnostics.txt", "a");
+    // diagnostics about 1 in every 199 orbits
+    if(reb_output_check(r, 10*M_PI)){        // outputs to the screen
+        if (n % 199 == 0){
+	    char fname[30];
+
+	    sprintf(fname, "diagnostics_%.2e.txt", mass_ratio);
+
+	    FILE* fp = fopen(fname, "a");
             struct reb_vec3d ang_mom = reb_tools_angular_momentum(r);
             fprintf(fp, "%.7f\t%.7e\t%.7e\t%.7e\t%.7e\n", r->t, reb_tools_energy(r), ang_mom.x, ang_mom.y, ang_mom.z);
             fclose(fp);
         }
-    }*/
-    
-    if(reb_output_check(r, 200*M_PI)){        // outputs to the screen
-        reb_output_timing(r, tmax);
     }
+    
+    /*if(reb_output_check(r, 200*M_PI)){        // outputs to the screen
+        reb_output_timing(r, tmax);
+    }*/
 
-    // printing when each orbit is disrupted
-    if(dist >= r_hill * 3.0 && stable){            
+    // printing when each orbit is disrupted (more than 3* as far as initial separation)
+    if(dist >= r_hill * a_over_rh * 3.0){          
         r->status = 1;
     }
 }
@@ -154,7 +161,7 @@ void print_time(struct reb_simulation* r){
 
     FILE* fp = fopen(fname, "a");
 
-    fprintf(fp, "%.7f\n", r->t);
+    fprintf(fp, "%.7f\t%d\n", r->t, n);
     fclose(fp);
 }
 
